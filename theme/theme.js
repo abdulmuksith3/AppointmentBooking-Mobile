@@ -14,5 +14,6 @@ export const font = {
     SEMI_BOLD:"Poppins-SemiBold",
     BOLD:"Poppins-Bold",
     EXTRA_BOLD:"Poppins-ExtraBold",
-    LIGHT: "Poppins-Light"
+    LIGHT: "Poppins-Light",
+    MEDIUM: "Poppins-Medium"
 }
