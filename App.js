@@ -2,8 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, {useState, useEffect} from 'react';
 import { StyleSheet, Text, View, LogBox, SafeAreaView} from 'react-native';
 // import db from './db';
-// import AuthContainer from './navigator/AuthContainer'
-// import AppContainer from './navigator/AppContainer'
+import AppNavigator from './navigator/AppNavigator'
 
 
 LogBox.ignoreAllLogs();
@@ -18,11 +17,7 @@ export default function App() {
 
   
   return (
-    <SafeAreaView>
-      <View>
-        <Text>Homee</Text>
-      </View>
-    </SafeAreaView>
+      <AppNavigator />
   );
   
 }
