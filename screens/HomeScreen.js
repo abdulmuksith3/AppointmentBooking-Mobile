@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RecyclerViewBackedScrollViewBase} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity} from 'react-native';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
 
@@ -126,7 +126,7 @@ export default function HomeScreen({navigation}) {
         </View>
         <View style={styles.sellerViewBottom}>
           {sellers && sellers.filter(x=> x.status === true).map((item, index) =>
-            <TouchableOpacity onPress={()=>navigation.navigate("SellerScreen")} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
+            <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen")} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
               <View style={styles.sellerContainerTop}>
                 {icon ?
                   <Text style={styles.sellerUserImage}>IMG</Text>
@@ -395,12 +395,19 @@ const styles = StyleSheet.create({
     // marginRight:"1%"
   },
   sellerContainer:{
-    backgroundColor: colors.LIGHT_GRAY,
+    backgroundColor: colors.WHITE,
     height: 190,
     width: "45%",
     borderRadius:10,
-    marginBottom:"8%"
-
+    marginBottom:"8%",
+    shadowColor: colors.BLACK,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   sellerContainerTop:{
     height:"60%",
