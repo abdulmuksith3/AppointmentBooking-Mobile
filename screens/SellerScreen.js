@@ -1,61 +1,141 @@
-import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect, useRef} from 'react';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Image, Linking} from 'react-native';
+import moment from 'moment';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
-
+import { conn } from '../conn';
+import { RefreshControl } from 'react-native-web';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-export default function SellerScreen({navigation}) {
-  const [icon, setIcon] = useState(false);
-  const [timings, setTimings] = useState([
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
+export default function SellerScreen({route, navigation}) {
+  const {sellerId, buyerId} = route.params;
+  const [seller, setSeller] = useState(null);
+  const [dates, setDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState();
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [refresh, setRefresh] = useState(false);
+  // const [busyTimings, setBusyTimings] = useState([]);
+
+  const busyTimings = useRef([])
+
+  useEffect(() => {
+    let dateArray =[]
+    let DT = moment()
+    DT.subtract(1, 'days')
+
+    for (let index = 0; index < 31; index++) {
+      dateArray.push({
+        id: index,
+        date: DT.add(1, 'days').format('DD'),
+        month: DT.format('MMM'),
+        year: DT.format('YYYY'),
+        fullDate: DT.format('DD MMM YYYY')
+        // dateString: new Date(DT).toISOString({ timeZone: "Asia/Qatar" })
+      })        
     }
-  ]);
+
+    setDates(dateArray)
+    setSelectedDate(dateArray[0])
+  }, []);
+
+  useEffect(() => {
+    if(sellerId){
+      fetchSellerDetails()
+    }
+  }, [sellerId]);
+
+  useEffect(() => {
+    if(selectedDate && seller){
+      checkAvailability()
+    }
+    // console.log("---------------------------checkAvailability")
+    // const timings = []
+    // const sellerAppointments = seller?.appointments?.filter((x)=> x.status === "ACCEPTED");
+
+    // sellerAppointments?.forEach(item => {
+    //   if(item.date === selectedDate.fullDate){
+    //     timings.push(item.time)
+    //   }
+    // });
+
+    // setBusyTimings(timings)
+
+    // console.log("---------------------------busyTimings",busyTimings)
+  }, [selectedDate, seller]);
+
+  const fetchSellerDetails = async () => {
+    console.log("fetchSellerDetails - Start")
+
+    try {
+      let url = `${conn}/seller/findOne/${sellerId}`
+      const response = await fetch(url, {
+        method: "GET",
+        // headers: {
+        //   'Content-Type': 'application/json'
+        // },
+        // body: JSON.stringify(data)
+      })
+      let res = await response.json()
+      // console.log("Seller - ",res)
+      setSeller(res)
+    } catch (err) {
+      console.log("fetchSellerDetails Errror ",err.message)
+    }
+
+    console.log("fetchSellerDetails - End")
+  }
+
+  const handleBooking = async () => {
+    console.log("handleBooking - Start")
+
+    const data = {
+      buyerId: buyerId,
+      sellerId: sellerId,
+      date: selectedDate.fullDate,
+      time: selectedTime.time,
+
+    }
+
+    try {
+      let url = `${conn}/buyer/bookAppointment`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      let res = await response.json()
+
+      if(res.message === "Success"){
+        navigation.navigate("AppointmentsScreen", {view:"PENDING"})
+      }
+
+    } catch (err) {
+      console.log("handleBooking Errror ",err.message)
+    }
+
+    console.log("handleBooking - End")
+  }
+
+  const checkAvailability = () => {
+    
+    console.log("---------------------------checkAvailability")
+    const timings = []
+    const sellerAppointments = seller?.appointments?.filter((x)=> x.status === "ACCEPTED");
+
+    sellerAppointments.forEach(item => {
+      if(item.date === selectedDate.fullDate){
+        timings.push(item.time)
+      }
+    });
+    busyTimings.current = timings
+    console.log(busyTimings.current.includes("8.00 AM"))
+    console.log("---------------------------busyTimings",busyTimings.current)
+  }
+
   return (
     <View style={styles.container}>
         
@@ -71,8 +151,11 @@ export default function SellerScreen({navigation}) {
           </TouchableOpacity>
         </View>
         <View style={styles.topCenter}>
-          {icon ?
-            <Text style={styles.userImage}>IMG</Text>
+          {seller?.photoURL ?
+            <Image 
+              source={{uri: seller.photoURL}}
+              style={styles.userImage}
+            />
             :
             <View style={styles.userIcon}>
               <Icon
@@ -83,25 +166,29 @@ export default function SellerScreen({navigation}) {
               />
             </View>
           }
-          <Text style={styles.nameText}>Name</Text>
-          <Text style={styles.companyText}>Company</Text>
+          <Text style={styles.nameText}>{seller?.fullName ? seller.fullName : "Loading"}</Text>
+          <Text style={styles.companyText}>{seller?.company ? seller.company : "Loading"}</Text>
           <View style={styles.communicationActionContainer}>
-            <TouchableOpacity style={styles.communicationContainer}>
-              <Icon
-                size={21}
-                type={"material"}
-                name={"phone"}
-                color={colors.WHITE}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.communicationContainer}>
-              <Icon
-                size={21}
-                type={"material"}
-                name={"email"}
-                color={colors.WHITE}
-              />
-            </TouchableOpacity>
+            {seller?.phone &&
+              <TouchableOpacity style={styles.communicationContainer} onPress={()=>Linking.openURL(`tel:${seller.phone}`)}>
+                <Icon
+                  size={21}
+                  type={"material"}
+                  name={"phone"}
+                  color={colors.WHITE}
+                />
+              </TouchableOpacity>
+            }
+            {seller?.email &&
+              <TouchableOpacity style={styles.communicationContainer} onPress={()=>Linking.openURL(`mailto:${seller.email}`)}>
+                <Icon
+                  size={21}
+                  type={"material"}
+                  name={"email"}
+                  color={colors.WHITE}
+                />
+              </TouchableOpacity>
+            }
             
           </View>
         </View>
@@ -113,33 +200,40 @@ export default function SellerScreen({navigation}) {
 
       <View style={styles.containerBottom}>
         <ScrollView style={styles.bodyScrollView}>
-          <View style={styles.about}>
-            <Text style={styles.aboutHeadText}>About Me</Text>
-            <Text style={styles.aboutBodyText}>About Me</Text>
-          </View>
+          {seller?.about &&
+            <View style={styles.about}>
+              <Text style={styles.aboutHeadText}>About Me</Text>
+              <Text style={styles.aboutBodyText}>{seller.about}</Text>
+            </View>
+          }
           <View style={styles.availability}>
             <Text style={styles.availabilityText}>Availability</Text>
-            <ScrollView horizontal style={styles.dateScrollView} contentContainerStyle={styles.dateScrollViewContent}>
-              {timings && timings.map( (item, index) => 
-                <TouchableOpacity key={index} onPress={()=>console.log(index)} style={styles.dateButton}>
-                  <Text style={styles.dateText}>27</Text>
-                  <Text style={styles.monthText}>Dec</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScrollView} contentContainerStyle={styles.dateScrollViewContent}>
+              {dates?.length > 0 && dates.map( (item, index) => 
+                <TouchableOpacity key={index} onPress={()=> setSelectedDate(item)} style={item.id === selectedDate.id ? styles.selectedDateButton :styles.dateButton}>
+                  <Text style={item.id === selectedDate.id ? styles.selectedDateText :styles.dateText}>{item.date}</Text>
+                  <Text style={item.id === selectedDate.id ? styles.selectedMonthText :styles.monthText}>{item.month}</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
+            {seller?.availability?.filter((time)=> time.status === true).length > 0  ?
             <View style={styles.timings}>
-              
-              {timings && timings.map( (item, index) => 
-                <TouchableOpacity key={index} onPress={()=>console.log(index)} style={styles.timeButton}>
-                  <Text style={styles.timeText}>11.00 AM</Text>
+              {seller.availability.filter((time)=> time.status === true && busyTimings.current.indexOf(time) === -1).map( (item, index) => 
+                <TouchableOpacity key={index} disable={busyTimings.current.includes(item.time)} onPress={()=>setSelectedTime(item)} style={selectedTime?.time === item.time ? styles.selectedTimeButton: styles.timeButton}>
+                  <Text style={selectedTime?.time === item.time ? styles.selectedTimeText : styles.timeText}>{item.time}</Text>
                 </TouchableOpacity>
               )}
             </View>
+            :
+            <View style={styles.noTimings}>
+              <Text style={styles.noTimingsText}>Sorry, there are no availabile timings for the seller</Text>
+            </View>
+            }
           </View>
         </ScrollView>
         <View style={styles.bookButtonContainer}>
-          <TouchableOpacity onPress={()=> console.log("BOOK")} style={styles.bookButton}>
-            <Text style={styles.bookText}>Book Appointment</Text>
+          <TouchableOpacity onPress={()=> handleBooking()} disabled={selectedTime === null ? true : false} style={selectedTime === null ? styles.disabledBookButton : styles.bookButton}>
+            <Text style={selectedTime === null ? styles.disabledBookText : styles.bookText}>Book Appointment</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -174,7 +268,11 @@ const styles = StyleSheet.create({
     
   },
   userImage:{
-
+    width:70,
+    height:70,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 160
   },
   userIcon:{
     width:70,
@@ -263,7 +361,7 @@ const styles = StyleSheet.create({
     borderRadius:100,
     borderWidth:1,
     borderColor: colors.DARK_PURPLE,
-    marginRight:10
+    marginRight:8
   },
   dateText:{
     fontSize:12,
@@ -274,6 +372,27 @@ const styles = StyleSheet.create({
     fontSize:9,
     fontFamily: font.REGULAR,
     color: colors.DARK_PURPLE
+  },
+  selectedDateButton:{
+    width:45,
+    height:45,
+    justifyContent:"center",
+    alignItems:"center",
+    backgroundColor:colors.DARK_PURPLE,
+    borderRadius:100,
+    borderWidth:1,
+    borderColor: colors.DARK_PURPLE,
+    marginRight:8
+  },
+  selectedDateText:{
+    fontSize:12,
+    fontFamily: font.REGULAR,
+    color: colors.WHITE
+  },
+  selectedMonthText:{
+    fontSize:9,
+    fontFamily: font.REGULAR,
+    color: colors.WHITE
   },
   timings:{
     // backgroundColor:"yellow",
@@ -300,6 +419,36 @@ const styles = StyleSheet.create({
     fontFamily: font.REGULAR,
     color: colors.DARK_PURPLE
   },
+  noTimings:{
+    // backgroundColor:"red",
+    height: height/6,
+    marginRight:"5%",
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  noTimingsText:{
+    fontSize:12,
+    fontFamily: font.REGULAR,
+    color: colors.GRAY
+  },
+  selectedTimeButton:{
+    width:"23%",
+    height: 40,
+    backgroundColor: colors.DARK_PURPLE,
+    justifyContent:"center",
+    alignItems:"center",
+    borderRadius: 10,
+    marginRight:"2%",
+    marginBottom:"4%",
+    borderWidth:1,
+    borderColor: colors.DARK_PURPLE
+
+  },
+  selectedTimeText:{
+    fontSize:12,
+    fontFamily: font.REGULAR,
+    color: colors.WHITE
+  },
   bookButtonContainer:{
     backgroundColor:colors.WHITE,
     height: 80,
@@ -321,5 +470,18 @@ const styles = StyleSheet.create({
     fontSize:14,
     fontFamily: font.MEDIUM,
     color: colors.WHITE
+  },
+  disabledBookButton:{
+    backgroundColor: colors.LIGHT_GRAY,
+    justifyContent:"center",
+    alignItems:"center",
+    height:45,
+    width:"80%",
+    borderRadius: 10
+  },
+  disabledBookText:{
+    fontSize:14,
+    fontFamily: font.MEDIUM,
+    color: colors.GRAY
   }
 });

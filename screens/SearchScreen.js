@@ -1,39 +1,25 @@
 import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, TextInput} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, TextInput, Image} from 'react-native';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-export default function SearchScreen({navigation}) {
-  const [icon, setIcon] = useState(false);
-  const [sellers, setSellers] = useState([
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: false
-    }
-  ]);
+export default function SearchScreen({route, navigation}) {
+  const {sellerList, buyerId} = route.params;
+
+  const [sellers, setSellers] = useState(false);
+  
+
+  useEffect(() => {
+    setSellers(sellerList);
+  }, []);
+
+  const handleSearch = (text) => {  
+    const filteredSellers = sellerList.filter((item) => (item.fullName).includes(text));
+    setSellers(filteredSellers)
+  }
 
   return (
     <View style={styles.container}>
@@ -56,7 +42,7 @@ export default function SearchScreen({navigation}) {
 
       <View style={styles.center}>
         <View style={styles.searchContainer}>
-          <TouchableOpacity onPress={()=>console.log("SEARCHING")} style={styles.searchButton}>
+          <TouchableOpacity activeOpacity={1} style={styles.searchButton}>
             <Icon
                 size={25}
                 type={"feather"}
@@ -66,8 +52,8 @@ export default function SearchScreen({navigation}) {
           </TouchableOpacity>
           <TextInput 
             style={styles.searchInput}
-            // value="Jose"
-            onChangeText={(text)=>console.log(text)}
+            // value={searchText}
+            onChangeText={(text)=>handleSearch(text)}
             placeholder='Search for a seller'
           />
         </View>
@@ -77,11 +63,14 @@ export default function SearchScreen({navigation}) {
       <View style={styles.body}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.innerBody}>
-            {sellers && sellers.filter(x=> x.status === true).map((item, index) =>
-              <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen")} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
+            {sellers?.length > 0 && sellers.map((item, index) =>
+              <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen", {sellerId: item._id, buyerId: buyerId})} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
                 <View style={styles.sellerContainerTop}>
-                  {icon ?
-                    <Text style={styles.sellerUserImage}>IMG</Text>
+                  {item?.photoURL ?
+                    <Image 
+                      source={{uri: item.photoURL}}
+                      style={styles.sellerUserImage}
+                    />
                     :
                     <View style={styles.sellerUserIcon}>
                       <Icon
@@ -94,7 +83,7 @@ export default function SearchScreen({navigation}) {
                   }
                 </View>
                 <View style={styles.sellerContainerBottom}>
-                  <Text style={styles.sellerNameText}>Name</Text>
+                  <Text style={styles.sellerNameText}>{item?.fullName ? item?.fullName :"Loading"}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -216,7 +205,11 @@ const styles = StyleSheet.create({
     alignItems:"center"
   },
   sellerUserImage:{
-
+    width:80,
+    height:80,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 160
   },
   sellerContainerBottom:{
     height:"40%",

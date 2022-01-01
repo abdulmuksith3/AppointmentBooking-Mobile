@@ -1,6 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
-import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, LogBox, SafeAreaView} from 'react-native';
+import React, {useState, useEffect, StatusBar} from 'react';
+import { StyleSheet, LogBox} from 'react-native';
 // import db from './db';
 import AppNavigator from './navigator/AppNavigator'
 
@@ -17,7 +16,7 @@ export default function App() {
 
   
   return (
-      <AppNavigator />
+    <AppNavigator />
   );
   
 }

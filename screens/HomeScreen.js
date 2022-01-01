@@ -1,37 +1,93 @@
 import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Image} from 'react-native';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
+import { conn } from '../conn';
+import moment from 'moment';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
 export default function HomeScreen({navigation}) {
+  const USER = "61cef5e86f6c09d08e9dfcd2"; //Abdul
+  // const USER = "61cf05686f6c09d08e9dfcd6"; //Akmal
+
+  const [user, setUser] = useState(null);
   const [icon, setIcon] = useState(false);
-  const [sellers, setSellers] = useState([
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
+  const [sellers, setSellers] = useState([]);
+
+  useEffect(() => {
+    fetchUser(USER);
+    fetchSellers();
+  }, []);
+
+  useEffect(() => {
+    if(user){
+      const acceptedAppointments = user.appointments.filter(appointment => appointment.status === "ACCEPTED");
+      
+      // let DT = moment()
+      // const upcomingAppointment = {
+      //   date: DT.format('DD MMM YYYY')
+      // };
+
+      acceptedAppointments.forEach(appointment => {
+        const dt = appointment.time +" "+ appointment.date;
+        console.log(moment(dt, "H.MM A DD MMM YYYY").fromNow())
+      });
+      
     }
-  ]);
+  }, [user]);
+
+  const fetchUser = async (userId) => {
+    try {
+      let url = `${conn}/buyer/findOne/${userId}`
+      const response = await fetch(url, {
+        method: "GET",
+        // headers: {
+        //   'Content-Type': 'application/json'
+        // },
+        // body: JSON.stringify(data)
+      })
+      let res = await response.json()
+      // console.log("user - ",res)
+      setUser(res)
+    } catch (err) {
+      console.log("FetchUser Errror ",err.message)
+    }
+  }
+
+  const fetchSellers = async () => {
+    try {
+      let url = `${conn}/seller/findAll`
+      const response = await fetch(url, {
+        method: "GET",
+        // headers: {
+        //   'Content-Type': 'application/json'
+        // },
+        // body: JSON.stringify(data)
+      })
+      let res = await response.json()
+      // console.log("Sellers - ",res)
+      setSellers(res)
+    } catch (err) {
+      console.log("fetchSellers Errror ",err.message)
+    }
+  }
+
   return (
     <ScrollView style={styles.container}>
+      
       <View style={styles.headerView}>
           <View style={styles.headerViewLeft}>
             <View><Text style={styles.helloText}>Hello</Text></View>
-            <View><Text style={styles.nameText}>Name</Text></View>
+            <View><Text style={styles.nameText}>{user?.fullName ? user.fullName : "Loading"}</Text></View>
           </View>
           <View style={styles.headerViewRight}>
-            {icon ?
-              <Text style={styles.headerUserImage}>IMG</Text>
+            {user?.photoURL ?
+              <Image 
+                source={{uri: user.photoURL}}
+                style={styles.headerUserImage}
+              />
               :
               <View style={styles.headerUserIcon}>
                 <Icon
@@ -47,7 +103,7 @@ export default function HomeScreen({navigation}) {
 
 
       <View style={styles.searchView}>
-        <TouchableOpacity onPress={()=> navigation.navigate("SearchScreen")} style={styles.searchButton}>
+        <TouchableOpacity onPress={()=> navigation.navigate("SearchScreen", {sellerList: sellers, buyerId: user._id})} style={styles.searchButton}>
           <View style={styles.searchIconView}>
             <Icon
               size={25}
@@ -122,14 +178,18 @@ export default function HomeScreen({navigation}) {
 
       <View style={styles.sellerView}>
         <View style={styles.sellerViewTop}>
-          <Text style={styles.sellerText}>Sellers</Text>
+          <Text style={styles.sellerText}>Top Sellers</Text>
         </View>
         <View style={styles.sellerViewBottom}>
-          {sellers && sellers.filter(x=> x.status === true).map((item, index) =>
-            <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen")} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
+          {sellers?.length > 0 && sellers.map((item, index) =>
+            index < 4 && 
+            <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen", {sellerId: item._id, buyerId: user._id})} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
               <View style={styles.sellerContainerTop}>
-                {icon ?
-                  <Text style={styles.sellerUserImage}>IMG</Text>
+                {item?.photoURL ?
+                  <Image 
+                    source={{uri: item.photoURL}}
+                    style={styles.sellerUserImage}
+                  />
                   :
                   <View style={styles.sellerUserIcon}>
                     <Icon
@@ -142,7 +202,7 @@ export default function HomeScreen({navigation}) {
                 }
               </View>
               <View style={styles.sellerContainerBottom}>
-                <Text style={styles.sellerNameText}>Name</Text>
+                <Text style={styles.sellerNameText}>{item?.fullName ? item?.fullName :"Loading"}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -193,6 +253,11 @@ const styles = StyleSheet.create({
     alignItems:"center"
   },
   headerUserImage:{
+    width:55,
+    height:55,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 100
 
   },
   headerUserIcon:{
@@ -423,7 +488,11 @@ const styles = StyleSheet.create({
     alignItems:"center"
   },
   sellerUserImage:{
-
+    width:80,
+    height:80,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 160
   },
   sellerContainerBottom:{
     height:"40%",
