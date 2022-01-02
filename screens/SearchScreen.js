@@ -17,7 +17,7 @@ export default function SearchScreen({route, navigation}) {
   }, []);
 
   const handleSearch = (text) => {  
-    const filteredSellers = sellerList.filter((item) => (item.fullName).includes(text));
+    const filteredSellers = sellerList.filter((item) => ((item.fullName).toLowerCase()).includes(text.toLowerCase()));
     setSellers(filteredSellers)
   }
 

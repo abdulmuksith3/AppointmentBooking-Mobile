@@ -1,30 +1,100 @@
 import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Image} from 'react-native';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
+import { conn } from '../conn';
+
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-export default function AppointmentsScreen({navigation}) {
-
-  const [appointments, setAppointments] = useState([
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    },
-    {
-      status: true
-    }
-  ]);
-
-  const [activeButton, setActiveButton] = useState("upcoming")
+export default function AppointmentsScreen({route, navigation}) {
+  const {allAppointments, view, allSellers} = route.params;
+  const [appointments, setAppointments] = useState([]);
+  const [sellers, setSellers] = useState([]);
+  const [activeButton, setActiveButton] = useState("UPCOMING")
   const [icon, setIcon] = useState(false);
+  
+  useEffect(() => {
+    if(view){
+      setActiveButton(view)
+    }
+  }, []);
+
+  useEffect(() => {
+    if(activeButton === "UPCOMING"){
+      const filteredAppointments = [];
+      const tempAppointments = allAppointments?.filter(item => item.status === "ACCEPTED");
+
+      tempAppointments?.forEach(element => {
+        const seller = allSellers?.filter(seller => seller._id === element.sellerId)[0];
+
+        filteredAppointments.push({
+          seller: seller,
+          appointment: element
+        })
+      });
+
+      setAppointments(filteredAppointments)
+    } else if (activeButton === "PENDING"){
+      const filteredAppointments = [];
+      const tempAppointments = allAppointments?.filter(item => item.status === "PENDING");
+
+      tempAppointments?.forEach(element => {
+        const seller = allSellers?.filter(seller => seller._id === element.sellerId)[0];
+
+        filteredAppointments.push({
+          seller: seller,
+          appointment: element
+        })
+      });
+
+      setAppointments(filteredAppointments)
+    } else if (activeButton === "COMPLETED"){
+      const filteredAppointments = [];
+      const tempAppointments = allAppointments?.filter(item => item.status === "COMPLETED" || item.status === "CANCELLED");
+
+      tempAppointments?.forEach(element => {
+        const seller = allSellers?.filter(seller => seller._id === element.sellerId)[0];
+
+        filteredAppointments.push({
+          seller: seller,
+          appointment: element
+        })
+      });
+
+      setAppointments(filteredAppointments)
+    }
+  }, [activeButton]);
+
+  const handleCancel = async (item) => {
+    const data = {
+      appointmentId: item._id,
+      sellerId: item.sellerId,
+      buyerId: item.buyerId,
+      status: item.status
+    }
+
+    try {
+      let url = `${conn}/buyer/cancelAppointment`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      let res = await response.json()
+
+      if(res.message = "Success"){
+        navigation.navigate("HomeScreen", {refresh: true})
+      }
+    } catch (err) {
+      console.log("handleCancel Errror ",err.message)
+    }
+  }
+
+  
 
   return (
     <View style={styles.container}>
@@ -47,30 +117,31 @@ export default function AppointmentsScreen({navigation}) {
 
       <View style={styles.center}>
         <View style={styles.buttonGroupContainer}>
-          <TouchableOpacity onPress={()=> setActiveButton("upcoming")} style={activeButton === "upcoming" ? styles.activeButton : styles.inactiveButton}>
-            <Text style={activeButton === "upcoming" ? styles.activeButtonText : styles.inactiveButtonText}>Upcoming</Text>
+          <TouchableOpacity onPress={()=> setActiveButton("UPCOMING")} style={activeButton === "UPCOMING" ? styles.activeButton : styles.inactiveButton}>
+            <Text style={activeButton === "UPCOMING" ? styles.activeButtonText : styles.inactiveButtonText}>Upcoming</Text>
           </TouchableOpacity>
           <View style={styles.buttonGroupSeperator}></View>
-          <TouchableOpacity onPress={()=> setActiveButton("pending")} style={activeButton === "pending" ? styles.activeButton : styles.inactiveButton}>
-            <Text style={activeButton === "pending" ? styles.activeButtonText : styles.inactiveButtonText}>Pending</Text>
+          <TouchableOpacity onPress={()=> setActiveButton("PENDING")} style={activeButton === "PENDING" ? styles.activeButton : styles.inactiveButton}>
+            <Text style={activeButton === "PENDING" ? styles.activeButtonText : styles.inactiveButtonText}>Pending</Text>
           </TouchableOpacity>
           <View style={styles.buttonGroupSeperator}></View>
-          <TouchableOpacity onPress={()=> setActiveButton("completed")} style={activeButton === "completed" ? styles.activeButton : styles.inactiveButton}>
-            <Text style={activeButton === "completed" ? styles.activeButtonText : styles.inactiveButtonText}>Completed</Text>
+          <TouchableOpacity onPress={()=> setActiveButton("COMPLETED")} style={activeButton === "COMPLETED" ? styles.activeButton : styles.inactiveButton}>
+            <Text style={activeButton === "COMPLETED" ? styles.activeButtonText : styles.inactiveButtonText}>Completed</Text>
           </TouchableOpacity>
         </View>
       </View>
 
 
       <View style={styles.body}>
+        {appointments?.length > 0 ?
         <ScrollView style={styles.scrollView}>
-          {appointments && appointments.filter(x=> x.status === true).map((item, index) =>
+          {appointments.map((item, index) =>
             <View key={index} style={styles.appointmentContainer}>
               <View style={styles.innerAppointmentContainer}>
                 <View style={styles.innerAppointmentContainerTop}>
                   <View style={styles.innerAppointmentContainerTopLeft}>
                     <View style={styles.nameView}>
-                      <Text style={styles.nameText}>Name</Text>
+                      <Text style={styles.nameText}>{item.seller.fullName}</Text>
                     </View>
                     <View style={styles.detailView}>
                       <Icon
@@ -79,7 +150,7 @@ export default function AppointmentsScreen({navigation}) {
                           name={"location-on"}
                           color={colors.BLACK}
                       />
-                      <Text style={styles.detailText}>Company</Text>
+                      <Text style={styles.detailText}>{item.seller.company}</Text>
                     </View>
                     <View style={styles.detailView}>
                       <Icon
@@ -88,7 +159,7 @@ export default function AppointmentsScreen({navigation}) {
                           name={"calendar"}
                           color={colors.BLACK}
                       />
-                      <Text style={styles.detailText}>Date</Text>
+                      <Text style={styles.detailText}>{item.appointment.date}</Text>
                     </View>
                     <View style={styles.detailView}>
                       <Icon
@@ -97,12 +168,15 @@ export default function AppointmentsScreen({navigation}) {
                           name={"clockcircleo"}
                           color={colors.BLACK}
                       />
-                      <Text style={styles.detailText}>Time</Text>
+                      <Text style={styles.detailText}>{item.appointment.time}</Text>
                     </View>
                   </View>
                   <View style={styles.innerAppointmentContainerTopRight}>
-                    {icon ?
-                      <Text style={styles.appointmentUserImage}>IMG</Text>
+                    {item.seller.photoURL ?
+                      <Image 
+                        source={{uri: item.seller.photoURL}}
+                        style={styles.appointmentUserImage}
+                      />
                       :
                       <View style={styles.appointmentUserIcon}>
                         <Icon
@@ -116,14 +190,24 @@ export default function AppointmentsScreen({navigation}) {
                   </View>
                 </View>
                 <View style={styles.innerAppointmentContainerBottom}>
-                  <TouchableOpacity onPress={()=> console.log("Cancelled Pressed")} style={styles.cancelButton}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <TouchableOpacity onPress={()=> handleCancel(item.appointment)} disabled={item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED"} style={(item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED") ? styles.noCancelButton:styles.cancelButton}>
+                    <Text style={styles.cancelButtonText}>
+                      { item.appointment.status === "COMPLETED" ? "COMPLETED" :
+                        item.appointment.status === "CANCELLED" ? "CANCELLED" :
+                        "CANCEL"
+                      }
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>              
             </View>
           )}
         </ScrollView>
+        :
+        <View style={styles.noAppointmentView}>
+          <Text style={styles.noAppointmentText}>There are no appointments</Text>
+        </View>  
+      }
       </View>
     </View>
   );
@@ -285,7 +369,11 @@ const styles = StyleSheet.create({
     width:"30%"
   },
   appointmentUserImage:{
-
+    width:55,
+    height:55,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 100
   },
   appointmentUserIcon:{
     width:55,
@@ -310,9 +398,27 @@ const styles = StyleSheet.create({
     alignItems:"center",
     height:32
   },
+  noCancelButton:{
+    backgroundColor: 'transparent',
+    borderRadius:5,
+    justifyContent:"center",
+    alignItems:"center",
+    height:32
+  },
   cancelButtonText:{
     fontSize: 10,
     fontFamily: font.MEDIUM,
+    color: colors.GRAY
+  },
+  noAppointmentView:{
+    // backgroundColor:"red",
+    justifyContent:"center",
+    alignItems:"center",
+    height: "40%"
+  },
+  noAppointmentText:{
+    fontSize:14,
+    fontFamily: font.REGULAR,
     color: colors.GRAY
   }
 

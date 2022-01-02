@@ -4,7 +4,6 @@ import moment from 'moment';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
 import { conn } from '../conn';
-import { RefreshControl } from 'react-native-web';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
@@ -15,7 +14,6 @@ export default function SellerScreen({route, navigation}) {
   const [dates, setDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState(null);
-  const [refresh, setRefresh] = useState(false);
   // const [busyTimings, setBusyTimings] = useState([]);
 
   const busyTimings = useRef([])
@@ -31,13 +29,13 @@ export default function SellerScreen({route, navigation}) {
         date: DT.add(1, 'days').format('DD'),
         month: DT.format('MMM'),
         year: DT.format('YYYY'),
-        fullDate: DT.format('DD MMM YYYY')
-        // dateString: new Date(DT).toISOString({ timeZone: "Asia/Qatar" })
+        fullDate: DT.format('DD MMM YYYY'),
+        // dateString: DT.format('MMMM DD, YYYY')
       })        
     }
-
-    setDates(dateArray)
+    handleDateSelect(dateArray[0])
     setSelectedDate(dateArray[0])
+    setDates(dateArray)
   }, []);
 
   useEffect(() => {
@@ -47,55 +45,30 @@ export default function SellerScreen({route, navigation}) {
   }, [sellerId]);
 
   useEffect(() => {
-    if(selectedDate && seller){
-      checkAvailability()
+    if(seller){
+      checkAvailability(selectedDate)
     }
-    // console.log("---------------------------checkAvailability")
-    // const timings = []
-    // const sellerAppointments = seller?.appointments?.filter((x)=> x.status === "ACCEPTED");
-
-    // sellerAppointments?.forEach(item => {
-    //   if(item.date === selectedDate.fullDate){
-    //     timings.push(item.time)
-    //   }
-    // });
-
-    // setBusyTimings(timings)
-
-    // console.log("---------------------------busyTimings",busyTimings)
-  }, [selectedDate, seller]);
+  }, [seller]);
 
   const fetchSellerDetails = async () => {
-    console.log("fetchSellerDetails - Start")
-
     try {
       let url = `${conn}/seller/findOne/${sellerId}`
       const response = await fetch(url, {
         method: "GET",
-        // headers: {
-        //   'Content-Type': 'application/json'
-        // },
-        // body: JSON.stringify(data)
       })
       let res = await response.json()
-      // console.log("Seller - ",res)
       setSeller(res)
     } catch (err) {
       console.log("fetchSellerDetails Errror ",err.message)
     }
-
-    console.log("fetchSellerDetails - End")
   }
 
   const handleBooking = async () => {
-    console.log("handleBooking - Start")
-
     const data = {
       buyerId: buyerId,
       sellerId: sellerId,
       date: selectedDate.fullDate,
       time: selectedTime.time,
-
     }
 
     try {
@@ -108,33 +81,40 @@ export default function SellerScreen({route, navigation}) {
         body: JSON.stringify(data)
       })
       let res = await response.json()
-
       if(res.message === "Success"){
-        navigation.navigate("AppointmentsScreen", {view:"PENDING"})
+        navigation.goBack()
       }
-
     } catch (err) {
       console.log("handleBooking Errror ",err.message)
     }
-
-    console.log("handleBooking - End")
   }
 
-  const checkAvailability = () => {
-    
-    console.log("---------------------------checkAvailability")
+
+  const checkAvailability = (selectedDate) => {
     const timings = []
     const sellerAppointments = seller?.appointments?.filter((x)=> x.status === "ACCEPTED");
+    const sellerRequests = seller?.requests?.filter((x)=> x.status === "PENDING" && x.buyerId === buyerId);
 
-    sellerAppointments.forEach(item => {
-      if(item.date === selectedDate.fullDate){
+    sellerAppointments?.forEach(item => {
+      if(item.date === selectedDate.fullDate && item){
+        timings.push(item.time)
+      }
+    });
+    sellerRequests?.forEach(item => {
+      if(item.date === selectedDate.fullDate && item){
         timings.push(item.time)
       }
     });
     busyTimings.current = timings
-    console.log(busyTimings.current.includes("8.00 AM"))
-    console.log("---------------------------busyTimings",busyTimings.current)
+
   }
+
+  const handleDateSelect = (selectedDate) => {
+    checkAvailability(selectedDate);
+    setSelectedDate(selectedDate);
+  }
+
+
 
   return (
     <View style={styles.container}>
@@ -210,7 +190,7 @@ export default function SellerScreen({route, navigation}) {
             <Text style={styles.availabilityText}>Availability</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScrollView} contentContainerStyle={styles.dateScrollViewContent}>
               {dates?.length > 0 && dates.map( (item, index) => 
-                <TouchableOpacity key={index} onPress={()=> setSelectedDate(item)} style={item.id === selectedDate.id ? styles.selectedDateButton :styles.dateButton}>
+                <TouchableOpacity key={index} onPress={()=> handleDateSelect(item)} style={item.id === selectedDate.id ? styles.selectedDateButton :styles.dateButton}>
                   <Text style={item.id === selectedDate.id ? styles.selectedDateText :styles.dateText}>{item.date}</Text>
                   <Text style={item.id === selectedDate.id ? styles.selectedMonthText :styles.monthText}>{item.month}</Text>
                 </TouchableOpacity>
@@ -218,9 +198,9 @@ export default function SellerScreen({route, navigation}) {
             </ScrollView>
             {seller?.availability?.filter((time)=> time.status === true).length > 0  ?
             <View style={styles.timings}>
-              {seller.availability.filter((time)=> time.status === true && busyTimings.current.indexOf(time) === -1).map( (item, index) => 
-                <TouchableOpacity key={index} disable={busyTimings.current.includes(item.time)} onPress={()=>setSelectedTime(item)} style={selectedTime?.time === item.time ? styles.selectedTimeButton: styles.timeButton}>
-                  <Text style={selectedTime?.time === item.time ? styles.selectedTimeText : styles.timeText}>{item.time}</Text>
+              {seller.availability.filter((time)=> time.status === true).map( (item, index) => 
+                <TouchableOpacity key={index} disabled={busyTimings.current.includes(item.time) ? true : false} onPress={()=>setSelectedTime(item)} style={busyTimings.current.includes(item.time) ? styles.disabledTimeButton :(selectedTime?.time === item.time ? styles.selectedTimeButton: styles.timeButton)}>
+                  <Text style={busyTimings.current.includes(item.time) ? styles.disabledTimeText :(selectedTime?.time === item.time ? styles.selectedTimeText : styles.timeText)}>{item.time}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -427,6 +407,24 @@ const styles = StyleSheet.create({
     alignItems:"center"
   },
   noTimingsText:{
+    fontSize:12,
+    fontFamily: font.REGULAR,
+    color: colors.GRAY
+  },
+  disabledTimeButton:{
+    width:"23%",
+    height: 40,
+    backgroundColor: colors.LIGHT_GRAY,
+    justifyContent:"center",
+    alignItems:"center",
+    borderRadius: 10,
+    marginRight:"2%",
+    marginBottom:"4%",
+    borderWidth:1,
+    borderColor: colors.LIGHT_GRAY
+
+  },
+  disabledTimeText:{
     fontSize:12,
     fontFamily: font.REGULAR,
     color: colors.GRAY

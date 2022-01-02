@@ -8,33 +8,36 @@ import moment from 'moment';
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen({route, navigation}) {
   const USER = "61cef5e86f6c09d08e9dfcd2"; //Abdul
-  // const USER = "61cf05686f6c09d08e9dfcd6"; //Akmal
+  // const USER = "61d1df084d99c961936ffc76"; //Mubarak
 
   const [user, setUser] = useState(null);
-  const [icon, setIcon] = useState(false);
   const [sellers, setSellers] = useState([]);
+  const [upcomingAppointment, setUpcomingAppointment] = useState(null);
 
   useEffect(() => {
-    fetchUser(USER);
-    fetchSellers();
+    const refresh = navigation.addListener('focus', () => {
+      // console.log("REFRESHING")
+      fetchUser(USER);
+      fetchSellers();
+      // console.log("REFRESHING END")
+   });
   }, []);
 
   useEffect(() => {
     if(user){
-      const acceptedAppointments = user.appointments.filter(appointment => appointment.status === "ACCEPTED");
+      const acceptedAppointments = user.appointments?.filter(appointment => appointment.status === "ACCEPTED");
       
-      // let DT = moment()
-      // const upcomingAppointment = {
-      //   date: DT.format('DD MMM YYYY')
-      // };
+      const upcomingAppointment = acceptedAppointments ? acceptedAppointments[0] : null;
 
-      acceptedAppointments.forEach(appointment => {
-        const dt = appointment.time +" "+ appointment.date;
-        console.log(moment(dt, "H.MM A DD MMM YYYY").fromNow())
-      });
-      
+      const appointmentSeller = sellers?.filter(seller => seller._id === upcomingAppointment?.sellerId)[0]
+
+      const appointmentData = {
+        appointment: upcomingAppointment,
+        seller: appointmentSeller
+      }
+      setUpcomingAppointment(appointmentData)
     }
   }, [user]);
 
@@ -122,57 +125,66 @@ export default function HomeScreen({navigation}) {
       <View style={styles.appointmentView}>
         <View style={styles.appointmentViewTop}>
           <Text style={styles.appointmentText}>Upcoming Appointments</Text>
-          <TouchableOpacity onPress={()=> navigation.navigate("AppointmentsScreen")} style={styles.appointmentButton}>
+          <TouchableOpacity onPress={()=> navigation.navigate("AppointmentsScreen", {view: "UPCOMING", allSellers: sellers, allAppointments: user?.appointments ? user.appointments : null})} style={styles.appointmentButton}>
             <Text style={styles. appointmentButtonText}>See All</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.appointmentViewBottom}>
-          <TouchableOpacity onPress={()=>navigation.navigate("AppointmentsScreen")} style={styles.appointmentContainer}>
-            <View style={styles.appointmentContainerTop}>
-              <View style={styles.appointmentContainerTopLeft}>
-                {icon ?
-                <Text style={styles.appointmentUserImage}>IMG</Text>
-                :
-                <View style={styles.appointmentUserIcon}>
-                  <Icon
-                      size={25}
-                      type="feather"
-                      name={"user"}
-                      color={colors.DARK_PURPLE}
-                  />
+        { upcomingAppointment?.appointment && upcomingAppointment?.seller ?
+          <View style={styles.appointmentViewBottom}>
+            <TouchableOpacity onPress={()=>navigation.navigate("AppointmentsScreen", {view: "UPCOMING", allSellers: sellers, allAppointments: user?.appointments ? user.appointments : null})} style={styles.appointmentContainer}>
+              <View style={styles.appointmentContainerTop}>
+                <View style={styles.appointmentContainerTopLeft}>
+                  {upcomingAppointment.seller.photoURL ?
+                    <Image 
+                      source={{uri: upcomingAppointment.seller.photoURL}}
+                      style={styles.appointmentUserImage}
+                    />
+                    :
+                    <View style={styles.appointmentUserIcon}>
+                      <Icon
+                          size={25}
+                          type="feather"
+                          name={"user"}
+                          color={colors.DARK_PURPLE}
+                      />
+                    </View>
+                  }
                 </View>
-                }
+                <View style={styles.appointmentContainerTopRight}>
+                  <Text style={styles.appointmentNameText}>{upcomingAppointment.seller.fullName}</Text>
+                  <Text style={styles.appointmentCompanyText}>{upcomingAppointment.seller.company}</Text>
+                </View>
               </View>
-              <View style={styles.appointmentContainerTopRight}>
-                <Text style={styles.appointmentNameText}>Name</Text>
-                <Text style={styles.appointmentCompanyText}>Company</Text>
-              </View>
-            </View>
-            <View style={styles.appointmentContainerBottom}>
-              <View style={styles.appointmentDateTimeContainer}>
-                <View style={styles.appointmentDateView}>
-                  <Icon
-                      size={23}
-                      type="ant-design"
-                      name={"calendar"}
-                      color={colors.WHITE}
-                  />
-                  <Text style={styles.appointmentDateText}>Date</Text>
-                </View>
-                <View style={styles.appointmentTimeView}>
-                  <Icon
-                      size={23}
-                      type="feather"
-                      name={"clock"}
-                      color={colors.WHITE}
-                  />
-                  <Text style={styles.appointmentTimeText}>Date</Text>
-                </View>
+              <View style={styles.appointmentContainerBottom}>
+                <View style={styles.appointmentDateTimeContainer}>
+                  <View style={styles.appointmentDateView}>
+                    <Icon
+                        size={23}
+                        type="ant-design"
+                        name={"calendar"}
+                        color={colors.WHITE}
+                    />
+                    <Text style={styles.appointmentDateText}>{upcomingAppointment.appointment.date}</Text>
+                  </View>
+                  <View style={styles.appointmentTimeView}>
+                    <Icon
+                        size={23}
+                        type="feather"
+                        name={"clock"}
+                        color={colors.WHITE}
+                    />
+                    <Text style={styles.appointmentTimeText}>{upcomingAppointment.appointment.time}</Text>
+                  </View>
 
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
         </View>
+        :
+        <View style={styles.noAppointmentViewBottom}>
+          <Text style={styles.noAppointmentText}>No upcoming appointments</Text>
+        </View>
+      }
       </View>
 
 
@@ -180,35 +192,41 @@ export default function HomeScreen({navigation}) {
         <View style={styles.sellerViewTop}>
           <Text style={styles.sellerText}>Top Sellers</Text>
         </View>
-        <View style={styles.sellerViewBottom}>
-          {sellers?.length > 0 && sellers.map((item, index) =>
-            index < 4 && 
-            <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen", {sellerId: item._id, buyerId: user._id})} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
-              <View style={styles.sellerContainerTop}>
-                {item?.photoURL ?
-                  <Image 
-                    source={{uri: item.photoURL}}
-                    style={styles.sellerUserImage}
-                  />
-                  :
-                  <View style={styles.sellerUserIcon}>
-                    <Icon
-                        size={28}
-                        type="feather"
-                        name={"user"}
-                        color={colors.WHITE}
+        {sellers?.length > 0 ?
+          <View style={styles.sellerViewBottom}>
+            {sellers.map((item, index) =>
+              index < 4 && 
+              <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen", {sellerId: item._id, buyerId: user._id})} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
+                <View style={styles.sellerContainerTop}>
+                  {item?.photoURL ?
+                    <Image 
+                      source={{uri: item.photoURL}}
+                      style={styles.sellerUserImage}
                     />
-                  </View>
-                }
-              </View>
-              <View style={styles.sellerContainerBottom}>
-                <Text style={styles.sellerNameText}>{item?.fullName ? item?.fullName :"Loading"}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          {/* {sellers && sellers.length%2 === 0 && <View style={styles.emptySellerContainer}></View>} */}
+                    :
+                    <View style={styles.sellerUserIcon}>
+                      <Icon
+                          size={28}
+                          type="feather"
+                          name={"user"}
+                          color={colors.WHITE}
+                      />
+                    </View>
+                  }
+                </View>
+                <View style={styles.sellerContainerBottom}>
+                  <Text style={styles.sellerNameText}>{item?.fullName ? item?.fullName :"Loading"}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            {/* {sellers && sellers.length%2 === 0 && <View style={styles.emptySellerContainer}></View>} */}
 
-        </View>
+          </View>
+          :
+          <View style={styles.noSellerViewBottom}>
+            <Text style={styles.noSellerText}>There are no sellers yet</Text>
+          </View>
+        }
       </View>
     </ScrollView>
   );
@@ -362,7 +380,11 @@ const styles = StyleSheet.create({
     paddingBottom:"2%"
   },
   appointmentUserImage:{
-
+    width:55,
+    height:55,
+    resizeMode: "cover",
+    // backgroundColor:"red",
+    borderRadius: 100
   },
   appointmentUserIcon:{
     width:55,
@@ -432,7 +454,17 @@ const styles = StyleSheet.create({
     color: colors.WHITE,
     paddingLeft: "10%"
   },
-  
+  noAppointmentViewBottom:{
+    // backgroundColor:"red",
+    height:"70%",
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  noAppointmentText:{
+    fontSize:14,
+    fontFamily: font.REGULAR,
+    color: colors.GRAY
+  },
 
 
 
@@ -512,4 +544,15 @@ const styles = StyleSheet.create({
     marginBottom:"8%"
 
   },
+  noSellerViewBottom:{
+    // backgroundColor:"red",
+    justifyContent:"center",
+    alignItems:"center",
+    height: height/7
+  },
+  noSellerText:{
+    fontSize:14,
+    fontFamily: font.REGULAR,
+    color: colors.GRAY
+  }
 });
