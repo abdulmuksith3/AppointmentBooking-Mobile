@@ -14,9 +14,9 @@ export default function SellerScreen({route, navigation}) {
   const [dates, setDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState(null);
-  // const [busyTimings, setBusyTimings] = useState([]);
+  const [busyTimings, setBusyTimings] = useState([]);
 
-  const busyTimings = useRef([])
+  // const busyTimings = useRef([])
 
   useEffect(() => {
     let dateArray =[]
@@ -105,11 +105,11 @@ export default function SellerScreen({route, navigation}) {
         timings.push(item.time)
       }
     });
-    busyTimings.current = timings
-
+    setBusyTimings(timings)
   }
 
   const handleDateSelect = (selectedDate) => {
+    setSelectedTime(null)
     checkAvailability(selectedDate);
     setSelectedDate(selectedDate);
   }
@@ -199,8 +199,8 @@ export default function SellerScreen({route, navigation}) {
             {seller?.availability?.filter((time)=> time.status === true).length > 0  ?
             <View style={styles.timings}>
               {seller.availability.filter((time)=> time.status === true).map( (item, index) => 
-                <TouchableOpacity key={index} disabled={busyTimings.current.includes(item.time) ? true : false} onPress={()=>setSelectedTime(item)} style={busyTimings.current.includes(item.time) ? styles.disabledTimeButton :(selectedTime?.time === item.time ? styles.selectedTimeButton: styles.timeButton)}>
-                  <Text style={busyTimings.current.includes(item.time) ? styles.disabledTimeText :(selectedTime?.time === item.time ? styles.selectedTimeText : styles.timeText)}>{item.time}</Text>
+                <TouchableOpacity key={index} disabled={busyTimings.includes(item.time) ? true : false} onPress={()=>setSelectedTime(item)} style={busyTimings.includes(item.time) ? styles.disabledTimeButton :(selectedTime?.time === item.time ? styles.selectedTimeButton: styles.timeButton)}>
+                  <Text style={busyTimings.includes(item.time) ? styles.disabledTimeText :(selectedTime?.time === item.time ? styles.selectedTimeText : styles.timeText)}>{item.time}</Text>
                 </TouchableOpacity>
               )}
             </View>
