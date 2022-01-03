@@ -52,7 +52,7 @@ export default function AppointmentsScreen({route, navigation}) {
       setAppointments(filteredAppointments)
     } else if (activeButton === "COMPLETED"){
       const filteredAppointments = [];
-      const tempAppointments = allAppointments?.filter(item => item.status === "COMPLETED" || item.status === "CANCELLED");
+      const tempAppointments = allAppointments?.filter(item => item.status === "COMPLETED" || item.status === "CANCELLED" || item.status === "REJECTED");
 
       tempAppointments?.forEach(element => {
         const seller = allSellers?.filter(seller => seller._id === element.sellerId)[0];
@@ -126,7 +126,7 @@ export default function AppointmentsScreen({route, navigation}) {
           </TouchableOpacity>
           <View style={styles.buttonGroupSeperator}></View>
           <TouchableOpacity onPress={()=> setActiveButton("COMPLETED")} style={activeButton === "COMPLETED" ? styles.activeButton : styles.inactiveButton}>
-            <Text style={activeButton === "COMPLETED" ? styles.activeButtonText : styles.inactiveButtonText}>Completed</Text>
+            <Text style={activeButton === "COMPLETED" ? styles.activeButtonText : styles.inactiveButtonText}>Other</Text>
           </TouchableOpacity>
         </View>
       </View>
