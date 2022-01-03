@@ -9,8 +9,12 @@ const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
 export default function HomeScreen({route, navigation}) {
-  const USER = "61cef5e86f6c09d08e9dfcd2"; //Abdul
+  // const USER = "61cef5e86f6c09d08e9dfcd2"; //Abdul
   // const USER = "61d1df084d99c961936ffc76"; //Mubarak
+  const USER = "61d30b194a84527a31e85640"; //Shaheer
+  // const USER = "61d30b5a4a84527a31e85641"; //Gehad
+  // const USER = "61d30b834a84527a31e85642"; //David
+  // const USER = "61d30bad4a84527a31e85643"; //Rowida
 
   const [user, setUser] = useState(null);
   const [sellers, setSellers] = useState([]);
@@ -18,16 +22,14 @@ export default function HomeScreen({route, navigation}) {
 
   useEffect(() => {
     const refresh = navigation.addListener('focus', () => {
-      // console.log("REFRESHING")
       fetchUser(USER);
       fetchSellers();
-      // console.log("REFRESHING END")
    });
   }, []);
 
   useEffect(() => {
     if(user){
-      const acceptedAppointments = user.appointments?.filter(appointment => appointment.status === "ACCEPTED");
+      const acceptedAppointments = user?.appointments?.filter(appointment => appointment.status === "ACCEPTED");
       
       const upcomingAppointment = acceptedAppointments ? acceptedAppointments[0] : null;
 
@@ -79,7 +81,6 @@ export default function HomeScreen({route, navigation}) {
 
   return (
     <ScrollView style={styles.container}>
-      
       <View style={styles.headerView}>
           <View style={styles.headerViewLeft}>
             <View><Text style={styles.helloText}>Hello</Text></View>

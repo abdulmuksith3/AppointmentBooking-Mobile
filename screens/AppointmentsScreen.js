@@ -190,10 +190,11 @@ export default function AppointmentsScreen({route, navigation}) {
                   </View>
                 </View>
                 <View style={styles.innerAppointmentContainerBottom}>
-                  <TouchableOpacity onPress={()=> handleCancel(item.appointment)} disabled={item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED"} style={(item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED") ? styles.noCancelButton:styles.cancelButton}>
+                  <TouchableOpacity onPress={()=> handleCancel(item.appointment)} disabled={item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED" || item.appointment.status === "REJECTED"} style={(item.appointment.status === "COMPLETED" || item.appointment.status === "CANCELLED"|| item.appointment.status === "REJECTED") ? styles.noCancelButton:styles.cancelButton}>
                     <Text style={styles.cancelButtonText}>
                       { item.appointment.status === "COMPLETED" ? "COMPLETED" :
                         item.appointment.status === "CANCELLED" ? "CANCELLED" :
+                        item.appointment.status === "REJECTED" ? "REJECTED" :
                         "CANCEL"
                       }
                     </Text>

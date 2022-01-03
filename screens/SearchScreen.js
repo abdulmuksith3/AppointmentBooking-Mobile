@@ -63,7 +63,7 @@ export default function SearchScreen({route, navigation}) {
       <View style={styles.body}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.innerBody}>
-            {sellers?.length > 0 && sellers.map((item, index) =>
+            {sellers?.length > 0 ? sellers.map((item, index) =>
               <TouchableOpacity key={index} onPress={()=>navigation.navigate("SellerScreen", {sellerId: item._id, buyerId: buyerId})} style={[styles.sellerContainer, index%2 !== 0 && {marginLeft:"7%"}]}>
                 <View style={styles.sellerContainerTop}>
                   {item?.photoURL ?
@@ -86,7 +86,12 @@ export default function SearchScreen({route, navigation}) {
                   <Text style={styles.sellerNameText}>{item?.fullName ? item?.fullName :"Loading"}</Text>
                 </View>
               </TouchableOpacity>
-            )}
+            )
+            :
+              <View style={styles.noResultView}>
+                <Text style={styles.noResultText}>No matches found</Text>
+              </View>
+            }
           </View>                    
         </ScrollView>
       </View>
@@ -221,5 +226,17 @@ const styles = StyleSheet.create({
     fontFamily:font.MEDIUM,
     color: colors.BLACK
   },
-
+  noResultView:{
+    // backgroundColor:"red",
+    width: "100%",
+    height: height/4,
+    alignSelf:"center",
+    justifyContent:"center",
+    alignItems:"center"
+  },
+  noResultText:{
+    fontFamily: font.MEDIUM,
+    fontSize: 14,
+    color: colors.GRAY
+  }
 });
