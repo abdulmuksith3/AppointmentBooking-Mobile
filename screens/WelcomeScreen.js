@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import { StyleSheet, Text, View,TouchableOpacity} from 'react-native';
+import { StyleSheet, Text, View,TouchableOpacity, StatusBar} from 'react-native';
 import {colors, font} from '../theme/theme'
 import { Icon } from 'react-native-elements';
 
@@ -7,6 +7,7 @@ export default function WelcomeScreen({navigation}) {
 
   return (
     <View style={styles.container}>
+      <StatusBar hidden/>
         <View style={styles.containerTop}>
             <Icon
                 size={230}
